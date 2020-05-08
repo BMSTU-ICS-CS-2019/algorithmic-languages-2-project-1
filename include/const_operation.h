@@ -14,11 +14,11 @@ namespace calculator {
     public:
         using typename Operation<T>::Result;
 
-        ConstOperation(T const& result) : result_(result) {}
+        explicit ConstOperation(T const& result) : result_(result) {}
 
-        ConstOperation(T&& result) noexcept : result_(std::move(result)) {}
+        explicit ConstOperation(T&& result) noexcept : result_(std::move(result)) {}
 
-        Result result() const override { return Result(result_); }
+        Result result() const noexcept override { return outcome::success(result_); }
     };
 } // namespace calculator
 

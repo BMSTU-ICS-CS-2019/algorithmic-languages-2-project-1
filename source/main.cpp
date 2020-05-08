@@ -1,13 +1,17 @@
 #include <iostream>
 
-#include <operation.h>
+#include <algebraic_operations.h>
 #include <const_operation.h>
+#include <operation.h>
 
-using BigInteger = boost::multiprecision::cpp_rational;
+using BigDecimal = boost::multiprecision::cpp_rational;
 
 int main() {
-    calculator::ConstOperation<BigInteger> op(124);
-    std::cout << typeid(op.result().value()).name() << std::endl;
+    calculator::PlusOperation<int> sum(
+            std::make_shared<calculator::ConstOperation<int>>(1),
+            std::make_shared<calculator::ConstOperation<int>>(2)
+    );
+    std::cout << "Result = " << sum.result().value() << std::endl;
 
     std::cout << "Hello, World!" << std::endl;
     return 0;

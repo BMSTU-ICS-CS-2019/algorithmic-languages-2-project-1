@@ -9,6 +9,6 @@ include_directories(algorithmic_languages_2_homework_2.cbp include)
 
 add_executable(algorithmic_languages_2_homework_2
     source/main.cpp
-)
+        include/algebraic_operations.h)
 
 target_link_libraries(algorithmic_languages_2_homework_2 ${CONAN_LIBS})
