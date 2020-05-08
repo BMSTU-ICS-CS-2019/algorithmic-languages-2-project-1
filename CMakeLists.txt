@@ -5,5 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 include(${CMAKE_HOME_DIRECTORY}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-add_executable(algorithmic_languages_2_homework_2 main.cpp)
+include_directories(algorithmic_languages_2_homework_2.cbp include)
+
+add_executable(algorithmic_languages_2_homework_2
+    source/main.cpp
+)
+
 target_link_libraries(algorithmic_languages_2_homework_2 ${CONAN_LIBS})
