@@ -6,24 +6,17 @@
 namespace calculator {
 
     template<typename T>
-    class PlusOperation : public Operation<T> {
-        std::shared_ptr<Operation<T>> const left_, right_;
+    class PlusOperation final : public BinaryOperation<T> {
 
     public:
         using typename Operation<T>::Result;
 
         PlusOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
-            : left_(left), right_(right) {}
+            : BinaryOperation<T>(left, right) {}
 
-        Result result() const noexcept override {
-            const auto left = left_->result();
-            BOOST_OUTCOME_TRY(left);
-
-            const auto right = right_->result();
-            BOOST_OUTCOME_TRY(right);
-
-            return outcome::success(left.value() + right.value());
-        };
+        Result apply(T const leftValue, T const rightValue) const noexcept override {
+            return outcome::success(leftValue + rightValue);
+        }
     };
 } // namespace calculator
 
