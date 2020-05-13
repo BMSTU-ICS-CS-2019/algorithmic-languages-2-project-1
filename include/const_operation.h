@@ -8,17 +8,14 @@ namespace calculator {
 
     template<typename T>
     class ConstOperation final : public Operation<T> {
-
         T const result_;
 
     public:
-        using typename Operation<T>::Result;
-
         explicit ConstOperation(T const& result) : result_(result) {}
 
         explicit ConstOperation(T&& result) noexcept : result_(std::move(result)) {}
 
-        Result result() const noexcept override { return outcome::success(result_); }
+        T result() const override { return result_; }
     };
 } // namespace calculator
 
