@@ -1,7 +1,9 @@
 #ifndef INCLUDE_ALGEBRAIC_OPERATIONS_H_
 #define INCLUDE_ALGEBRAIC_OPERATIONS_H_
 
+#include <cmath>
 #include <memory>
+#include <type_traits>
 #include <operation.h>
 
 namespace calculator {
@@ -62,6 +64,18 @@ namespace calculator {
             if (rightValue == ZERO) throw OperationError("Division by zero");
 
             return leftValue % rightValue;
+        }
+    };
+
+    template<typename T>
+    class PrimitiveSqrtOperation final : public UnaryOperation<T> {
+        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value);
+    public:
+        PrimitiveSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept
+            : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const noexcept override {
+            return sqrt(value);
         }
     };
 } // namespace calculator
