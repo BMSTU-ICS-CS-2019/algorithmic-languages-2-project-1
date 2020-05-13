@@ -3,8 +3,8 @@
 
 #include <cmath>
 #include <memory>
+#include <operation/operation.h>
 #include <type_traits>
-#include <operation.h>
 
 namespace calculator {
 
@@ -76,6 +76,18 @@ namespace calculator {
 
         T apply(T&& value) const noexcept override {
             return sqrt(value);
+        }
+    };
+
+    template<typename T>
+    class ObjectSqrtOperation final : public UnaryOperation<T> {
+        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value);
+    public:
+        ObjectSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept
+            : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const noexcept override {
+            return value.sqrt();
         }
     };
 } // namespace calculator

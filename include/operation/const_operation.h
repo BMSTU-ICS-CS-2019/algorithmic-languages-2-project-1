@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CONST_OPERATION_H_
 #define INCLUDE_CONST_OPERATION_H_
 
-#include <operation.h>
+#include <operation/operation.h>
 #include <utility>
 
 namespace calculator {
