@@ -30,7 +30,6 @@ namespace calculator {
          * 3.) Sum terms
          */
 
-
         static std::vector<Term> parseTerms(std::string_view expression) {
             if (expression.empty()) return std::vector<Term>();
 
@@ -79,9 +78,9 @@ namespace calculator {
                             empty = true;
                             startIndex = index + 1;
                             negative = false;
+                            continue;
                         }
-                        else if (token == '(') ++depth;
-                        continue;
+                        if (token == '(') ++depth;
                     }
                 }
 
