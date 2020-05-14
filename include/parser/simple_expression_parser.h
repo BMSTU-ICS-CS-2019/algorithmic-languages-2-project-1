@@ -31,8 +31,6 @@ namespace calculator {
          */
 
 
-        // true for not EOF
-        // false for EOF
         static std::vector<Term> parseTerms(std::string_view expression) {
             if (expression.empty()) return std::vector<Term>();
 
