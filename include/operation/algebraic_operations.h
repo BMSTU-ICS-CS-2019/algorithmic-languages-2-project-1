@@ -14,7 +14,7 @@ namespace calculator {
         PlusOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
-        T apply(T&& leftValue, T&& rightValue) const noexcept override {
+        T apply(T&& leftValue, T&& rightValue) const override {
             return leftValue + rightValue;
         }
     };
@@ -25,7 +25,7 @@ namespace calculator {
         MinusOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
-        T apply(T&& leftValue, T&& rightValue) const noexcept override {
+        T apply(T&& leftValue, T&& rightValue) const override {
             return leftValue - rightValue;
         }
     };
@@ -36,7 +36,7 @@ namespace calculator {
         MultiplyOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
-        T apply(T&& leftValue, T&& rightValue) const noexcept override {
+        T apply(T&& leftValue, T&& rightValue) const override {
             return leftValue * rightValue;
         }
     };
@@ -47,7 +47,7 @@ namespace calculator {
         DivideOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
-        T apply(T&& leftValue, T&& rightValue) const noexcept override {
+        T apply(T&& leftValue, T&& rightValue) const override {
             if (rightValue == ZERO) throw OperationError("Division by zero");
 
             return leftValue / rightValue;
@@ -60,7 +60,7 @@ namespace calculator {
         ModuloOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
-        T apply(T&& leftValue, T&& rightValue) const noexcept override {
+        T apply(T&& leftValue, T&& rightValue) const override {
             if (rightValue == ZERO) throw OperationError("Division by zero");
 
             return leftValue % rightValue;
@@ -74,7 +74,7 @@ namespace calculator {
         PrimitiveSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept
             : UnaryOperation<T>(operand) {}
 
-        T apply(T&& value) const noexcept override {
+        T apply(T&& value) const override {
             return sqrt(value);
         }
     };
@@ -86,7 +86,7 @@ namespace calculator {
         ObjectSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept
             : UnaryOperation<T>(operand) {}
 
-        T apply(T&& value) const noexcept override {
+        T apply(T&& value) const override {
             return value.sqrt();
         }
     };

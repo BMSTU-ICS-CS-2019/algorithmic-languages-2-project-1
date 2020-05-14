@@ -45,7 +45,7 @@ namespace calculator {
         T result() const final override { return apply(operand_->result()); };
 
     protected:
-        virtual T apply(T&& value) const noexcept = 0;
+        virtual T apply(T&& value) const = 0;
     };
 
     template<typename T>
