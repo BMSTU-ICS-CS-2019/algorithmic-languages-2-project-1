@@ -21,7 +21,7 @@ namespace calculator {
     /**
      * @brief An operation providing some result.
      *
-     * @tparam T result og the operation
+     * @tparam T result of the operation
      */
     template<typename T>
     class Operation {
