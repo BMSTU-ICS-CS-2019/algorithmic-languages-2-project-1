@@ -2,8 +2,9 @@
 #define INCLUDE_SIMPLE_EXPRESSION_PARSER_H_
 
 #include <algorithm>
+#include <boost/convert.hpp>
+#include <boost/convert/strtol.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <iostream> // TODO remove
 #include <map>
 #include <operation/algebraic_operations.h>
 #include <operation/const_operation.h>
@@ -22,9 +23,34 @@ namespace calculator {
     class SimpleOperationParser final : public ExpressionParser<T> {
         typedef std::shared_ptr<Operation<T>> OperationPointer;
 
-        enum OperatorType {
+        /*
+         * Type conversions
+
+        template<typename C>
+        C fromStringView(std::string_view const& number) {
+            struct None {};
+            static_assert(std::is_same<T, C>::value, "Type is not convertible");
+        }
+
+        template<>
+        double fromStringView<double>(std::string_view const& number) {
+            return boost::convert<double>(number, boost::cnv::strtol());
+        }
+
+        template<>
+        BigDecimal fromStringView<BigDecimal>(std::string_view const& number) {
+            return BigDecimal(number);
+        }
+         */
+
+        /*
+         * Parsing
+         */
+
+        enum class OperatorType : uint8_t {
             LEFT_BRACE,
             RIGHT_BRACE, // may be unused
+            INVERT,
             PLUS,
             MINUS,
             MULTIPLY,
@@ -50,26 +76,24 @@ namespace calculator {
         };
 
         // based on: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-        struct Context {
+        struct Context final {
             typedef std::variant<OperationPointer, OperatorType> OperandOrOperator;
 
             std::queue<OperandOrOperator> output;
             std::stack<Operator> operators;
 
+        public:
             void pushValue(std::shared_ptr<Operation<T>>&& value) { output.push(std::move(value)); }
 
-            void pushConstant(T&& number) {
-                pushValue(std::make_shared<ConstOperation<T>>(std::move(number)));
-            }
+            void pushConstant(T&& number) { pushValue(std::make_shared<ConstOperation<T>>(std::move(number))); }
 
             void pushVariable(char const name) { pushValue(std::make_shared<VariableOperation<T>>(name)); }
 
             void pushFunction(OperatorType type) { operators.push({type, INT_MAX, false}); }
 
             void pushOperator(Operator const& pushedOperator) {
-                std::cout << "\t\t\tpushop" << pushedOperator.type << std::endl;
                 Operator topOperator;
-                while (!operators.empty() && ((topOperator = operators.top()).type != LEFT_BRACE)
+                while (!operators.empty() && ((topOperator = operators.top()).type != OperatorType::LEFT_BRACE)
                        && ((topOperator.priority > pushedOperator.priority)
                            || (topOperator.priority == pushedOperator.priority && topOperator.leftAssociative))) {
                     operators.pop();
@@ -78,13 +102,13 @@ namespace calculator {
                 operators.push(pushedOperator);
             }
 
-            void pushLeftBracket() { operators.push({LEFT_BRACE, INT_MAX, false}); }
+            void pushLeftBracket() { operators.push({OperatorType::LEFT_BRACE, INT_MAX, false}); }
 
             void pushRightBracket() {
                 while (!operators.empty()) {
                     // handle top operator
                     auto const topOperator = operators.top();
-                    if (topOperator.type == LEFT_BRACE) return;
+                    if (topOperator.type == OperatorType::LEFT_BRACE) return;
                     output.push(topOperator.type);
 
                     operators.pop(); // go to the next operator
@@ -132,45 +156,65 @@ namespace calculator {
                     if (either.index() == 0) operands.push(std::get<0>(either)); // operand
                     else {                                                       // operator
                         switch (std::get<1>(either)) {
-                            case LEFT_BRACE: throw InvalidExpression("Imbalanced parentheses");
-                            case RIGHT_BRACE: throw std::runtime_error("Parser has produced a right brace token");
-                            case PLUS: {
-                                operands.push(
-                                        std::make_shared<PlusOperation<T>>(operands.pop(), operands.pop()));
+                            case OperatorType::LEFT_BRACE: throw InvalidExpression("Imbalanced parentheses");
+                            case OperatorType::RIGHT_BRACE:
+                                throw std::runtime_error("Parser has produced a right brace token");
+                            case OperatorType::INVERT: {
+                                operands.push(std::make_shared<InvertOperation<T>>(operands.pop()));
                                 break;
                             }
-                            case MINUS: {
-                                operands.push(
-                                        std::make_shared<MinusOperation<T>>(operands.pop(), operands.pop()));
+                            case OperatorType::PLUS: {
+                                operands.push(std::make_shared<PlusOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
-                            case MULTIPLY: {
-                                operands.push(std::make_shared<MultiplyOperation<T>>(operands.pop(),
-                                                                                     operands.pop()));
+                            case OperatorType::MINUS: {
+                                operands.push(std::make_shared<MinusOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
-                            case DIVIDE: {
-                                operands.push(
-                                        std::make_shared<DivideOperation<T>>(operands.pop(), operands.pop()));
+                            case OperatorType::MULTIPLY: {
+                                operands.push(std::make_shared<MultiplyOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
-                            case MODULO: {
-                                /*operands.push(std::make_shared<ModuloOperation<T>>(
-                                        operands.pop(), operands.pop()
-                                        ));
-                                break;*/
+                            case OperatorType::DIVIDE: {
+                                operands.push(std::make_shared<DivideOperation<T>>(operands.pop(), operands.pop()));
+                                break;
                             }
-                            case SQRT:
-                            case EXP:
-                            case POW:
-                            case SIN:
-                            case COS:
-                            case TG:
-                            case CTG:
-                            case ASIN:
-                            case ACOS:
-                            case ATG:
-                            case ACTG: throw new std::runtime_error("Unsupported operation");
+                            case OperatorType::SQRT: {
+                                operands.push(std::make_shared<PrimitiveSqrtOperation<T>>(operands.pop()));
+                                break;
+                            }
+                            case OperatorType::EXP: {
+                                operands.push(std::make_shared<PowOperation<T>>(std::make_shared<ConstEOperation<T>>(),
+                                                                                operands.pop()));
+                                break;
+                            }
+                            case OperatorType::POW: {
+                                operands.push(std::make_shared<PowOperation<T>>(operands.pop(), operands.pop()));
+                                break;
+                            }
+                            case OperatorType::SIN: {
+                                operands.push(std::make_shared<SinOperation<T>>(operands.pop()));
+                                break;
+                            }
+                            case OperatorType::COS: {
+                                operands.push(std::make_shared<CosOperation<T>>(operands.pop()));
+                                break;
+                            }
+                            case OperatorType::TG: {
+                                operands.push(std::make_shared<TgOperation<T>>(operands.pop()));
+                                break;
+                            }
+                            case OperatorType::CTG: {
+                                operands.push(std::make_shared<CtgOperation<T>>(operands.pop()));
+                                break;
+                            }
+                                // unsupported
+                            case OperatorType::MODULO: {
+                                case OperatorType::ASIN:
+                                case OperatorType::ACOS:
+                                case OperatorType::ATG:
+                                case OperatorType::ACTG: throw new std::runtime_error("Unsupported operation");
+                            }
                         }
                     }
                 }
@@ -180,10 +224,38 @@ namespace calculator {
             }
         };
 
+        enum class PermittedToken : uint8_t {
+            OPERAND = 1 << 0u,
+            ALGEBRAIC = 1 << 1u,
+            MULTIPLYING = 1 << 2u,
+        };
+
+        class Permissions final {
+            uint8_t mask_;
+
+        public:
+            void clear() { mask_ = 0; }
+
+            void permitAnything() {
+                mask_ = static_cast<uint8_t>(PermittedToken::OPERAND) | static_cast<uint8_t>(PermittedToken::ALGEBRAIC)
+                        | static_cast<uint8_t>(PermittedToken::MULTIPLYING);
+            }
+
+            void permit(PermittedToken token) { mask_ |= static_cast<uint8_t>(token); }
+
+            inline bool isPermitted(PermittedToken token) { return (mask_ & static_cast<uint8_t>(token)) != 0; }
+
+            void require(PermittedToken token) {
+                if (!isPermitted(token)) { throw InvalidExpression("Invalid expression"); }
+            }
+        };
+
         static std::shared_ptr<Operation<T>> parseExpression(std::string_view expression) {
             std::cout << "\tHandling single expression: (|" << expression << "|)" << std::endl; // TODO remove
 
             Context context;
+            Permissions permissions;
+            permissions.permit(PermittedToken::OPERAND);
 
             auto const length = expression.length(), maxIndex = length - 1;
             for (size_t index = 0; index < length; ++index) {
@@ -196,32 +268,36 @@ namespace calculator {
                     case '0': case '1': case '2': case '3': case '4':
                     case '5': case '6': case '7': case '8': case '9': {
                         //@formatter:on
+                        permissions.require(PermittedToken::OPERAND);
+
                         size_t numberLength = 1;
                         while (index < maxIndex) { // read numbers until non-digit symbol is found
-                            if (std::isdigit(character = expression[index + 1]))  {
+                            if (std::isdigit(character = expression[index + 1])) {
                                 ++numberLength;
                                 ++index;
-                            }
-                            else
+                            } else
                                 break;
                         }
-                        if (character == '.') {
+                        if (character == ',') {
                             ++numberLength;
+                            ++index;
                             while (index < maxIndex) { // read numbers until non-digit symbol is found
                                 if (std::isdigit(character = expression[index + 1])) {
                                     ++numberLength;
                                     ++index;
-                                }
-                                else
+                                } else
                                     break;
                             }
                         }
 
+                        // TODO from string
                         context.pushConstant(T(expression.substr(index + 1 - numberLength, numberLength)));
+                        permissions.permitAnything();
 
                         break;
                     }
-                    case '.': {                // decimal part of the number: (\d+)
+                    case ',': { // decimal part of the number: (\d+)
+                        permissions.require(PermittedToken::OPERAND);
                         if (index == maxIndex) // no possible digits
                             throw InvalidExpression("Meaningless dot at index " + std::to_string(index));
 
@@ -230,14 +306,16 @@ namespace calculator {
                             if (std::isdigit(character = expression[index + 1])) {
                                 ++numberLength;
                                 ++index;
-                            }
-                            else
+                            } else
                                 break;
                         }
                         if (numberLength == 1) // no digits
                             throw InvalidExpression("Meaningless dot at index " + std::to_string(index));
 
                         context.pushConstant(T(expression.substr(index + 1 - numberLength, numberLength)));
+
+                        permissions.clear();
+                        permissions.permitAnything();
 
                         break;
                     }
@@ -249,6 +327,8 @@ namespace calculator {
                          */
                     case 'E':
                     case 'e': {
+                        permissions.require(PermittedToken::OPERAND);
+
                         if (index < maxIndex - 2) { // 2 extra symbols (`xp`) + at least one symbol after
                             // continue reading
                             if (((character = expression[index + 1]) == 'X' || character == 'x')
@@ -256,15 +336,23 @@ namespace calculator {
                                 index += 2;
                                 // this is an exp function
                                 context.pushFunction(OperatorType::EXP);
+                                permissions.permit(PermittedToken::OPERAND);
+
                                 break;
                             }
                         }
+
+                        permissions.require(PermittedToken::OPERAND);
                         // this is an e constant
                         context.pushValue(std::make_shared<ConstEOperation<T>>());
+
+                        permissions.permitAnything();
+
                         break;
                     }
                     case 'P':
                     case 'p': {
+                        permissions.require(PermittedToken::OPERAND);
                         if (index < maxIndex) {
                             auto const char1 = expression[character + 1];
                             if (char1 == 'I' || char1 == 'i') {
@@ -275,10 +363,13 @@ namespace calculator {
                         }
                         // this is a variable
                         context.pushVariable(character); // P or p
+                        permissions.permitAnything();
+
                         break;
                     }
                     case 'S': // sin or sqrt
                     case 's': {
+                        permissions.require(PermittedToken::OPERAND);
                         // 2 extra symbols (`in`) + at least one symbol after for `sin`
                         if (index < maxIndex - 2) {
                             auto const char1 = expression[index + 1], char2 = expression[index + 2];
@@ -286,6 +377,8 @@ namespace calculator {
                                 index += 2;
                                 // this is a sin function
                                 context.pushFunction(OperatorType::SIN);
+                                permissions.permit(PermittedToken::OPERAND);
+
                                 break;
                             }
 
@@ -296,6 +389,8 @@ namespace calculator {
                                         index += 3;
                                         // this is a sqrt function
                                         context.pushFunction(OperatorType::SQRT);
+                                        permissions.permit(PermittedToken::OPERAND);
+
                                         break;
                                     }
                                 }
@@ -303,10 +398,13 @@ namespace calculator {
                         }
                         // this is a variable
                         context.pushVariable(character); // S or s
+                        permissions.permitAnything();
+
                         break;
                     }
                     case 'C':
                     case 'c': {
+                        permissions.require(PermittedToken::OPERAND);
                         // 2 extra symbols (`in`) + at least one symbol after for `cos` or `ctg`
                         if (index < maxIndex - 2) {
                             auto const char1 = expression[index + 1], char2 = expression[index + 2];
@@ -314,6 +412,8 @@ namespace calculator {
                                 index += 2;
                                 // this is a cos function
                                 context.pushFunction(OperatorType::COS);
+                                permissions.permit(PermittedToken::OPERAND);
+
                                 break;
                             }
 
@@ -321,50 +421,110 @@ namespace calculator {
                                 index += 2;
                                 // this is a ctg function
                                 context.pushFunction(OperatorType::CTG);
+                                permissions.permit(PermittedToken::OPERAND);
+
                                 break;
                             }
                         }
                         // this is a variable
                         context.pushVariable(character); // C or c
+                        permissions.permitAnything();
+
+                        break;
+                    }
+                    case 'T':
+                    case 't': {
+                        permissions.require(PermittedToken::OPERAND);
+                        // 2 extra symbols (`in`) + at least one symbol after for `cos` or `ctg`
+                        if (index < maxIndex - 2) {
+                            auto const char1 = expression[index + 1], char2 = expression[index + 2];
+                            if (char1 == 'G' || char1 == 'g') {
+                                index += 1;
+                                // this is a ctg function
+                                context.pushFunction(OperatorType::TG);
+                                permissions.permit(PermittedToken::OPERAND);
+
+                                break;
+                            }
+                        }
+                        // this is a variable
+                        context.pushVariable(character); // C or c
+                        permissions.permitAnything();
+
                         break;
                     }
                         // TODO add tg
                         // TODO arc-function
                     case '+': {
-                        context.pushOperator({PLUS, 0, false});
+                        permissions.require(PermittedToken::ALGEBRAIC);
+                        context.pushOperator({OperatorType::PLUS, 0, false});
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
-                        // TODO unary minus
                     case '-': {
-                        context.pushOperator({MINUS, 0, false});
+                        if (permissions.isPermitted(PermittedToken::ALGEBRAIC)) {
+                            // binary minus
+                            context.pushOperator({OperatorType::MINUS, 0, false});
+                            permissions.permit(PermittedToken::OPERAND);
+                        } else {
+                            // unary minus
+                            permissions.require(PermittedToken::OPERAND);
+                            context.pushOperator({OperatorType::INVERT, 0, false});
+                            permissions.permit(PermittedToken::OPERAND);
+                        }
+
                         break;
                     }
                     case '*': {
-                        context.pushOperator({MULTIPLY, 1, false});
+                        permissions.require(PermittedToken::MULTIPLYING);
+                        context.pushOperator({OperatorType::MULTIPLY, 1, false});
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
                     case '/': {
-                        context.pushOperator({DIVIDE, 1, false});
+                        permissions.require(PermittedToken::MULTIPLYING);
+                        context.pushOperator({OperatorType::DIVIDE, 1, false});
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
                     case '%': {
-                        context.pushOperator({MODULO, 1, false});
+                        permissions.require(PermittedToken::MULTIPLYING);
+                        context.pushOperator({OperatorType::MODULO, 1, false});
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
                     case '^': {
-                        context.pushOperator({POW, 2, false});
+                        permissions.require(PermittedToken::MULTIPLYING);
+                        context.pushOperator({OperatorType::POW, 2, false});
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
                     case '(': {
+                        permissions.require(PermittedToken::OPERAND);
                         context.pushLeftBracket();
+                        permissions.permit(PermittedToken::OPERAND);
+
                         break;
                     }
                     case ')': {
+                        // FIXME (?) permissions.require(PermittedToken::ALGEBRAIC);
                         context.pushRightBracket();
+                        permissions.permit(PermittedToken::ALGEBRAIC);
+                        permissions.permit(PermittedToken::MULTIPLYING);
+
                         break;
                     }
                     default: {
-                        if (std::isalpha(character)) context.pushVariable(character);
+                        if (std::isalpha(character)) {
+                            permissions.require(PermittedToken::OPERAND);
+                            context.pushVariable(character);
+                            permissions.permitAnything();
+                        }
                     }
                 }
             }
@@ -439,12 +599,10 @@ namespace calculator {
                     }
                 }
 
-                if (empty)
-                    throw InvalidExpression("Missing operand: no right operand provided for "
-                                            + std::to_string(expression[length - 1]));
-
-                // flush the last sub-expression
-                terms.push_back({expression.substr(startIndex, length - startIndex), negative});
+                if (!empty) {
+                    // flush the last sub-expression
+                    terms.push_back({expression.substr(startIndex, length - startIndex), negative});
+                }
             }
 
             return terms;
@@ -505,6 +663,5 @@ namespace calculator {
         }
     };
 } // namespace calculator
-
 
 #endif //INCLUDE_SIMPLE_EXPRESSION_PARSER_H_

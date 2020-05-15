@@ -1,8 +1,6 @@
 #ifndef INCLUDE_CONST_OPERATION_H_
 #define INCLUDE_CONST_OPERATION_H_
 
-#define _USE_MATH_DEFINES
-
 #include <cmath>
 #include <operation/operation.h>
 #include <utility>

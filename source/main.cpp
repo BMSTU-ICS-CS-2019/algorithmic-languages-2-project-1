@@ -9,7 +9,7 @@ static const size_t MAX_VARIABLES = 10;
 
 Variables<BigDecimal> readVariables();
 
-int main() {
+int main() { // x^2 + cos 3.1415926536
     calculator::SimpleOperationParser<BigDecimal> parser;
 
     std::string input;

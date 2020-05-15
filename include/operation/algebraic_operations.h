@@ -60,7 +60,8 @@ namespace calculator {
 
     template<typename T>
     class DivideOperation final : public BinaryOperation<T> {
-        T const ZERO {};
+        T const ZERO{};
+
     public:
         DivideOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
@@ -73,37 +74,30 @@ namespace calculator {
     };
 
     template<typename T>
-    class ModuloOperation final : public BinaryOperation<T> {
-        T const ZERO {};
+    class InvertOperation final : public UnaryOperation<T> {
     public:
-        ModuloOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
+        InvertOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const override { return -value; }
+    };
+
+    template<typename T>
+    class PowOperation final : public BinaryOperation<T> {
+    public:
+        PowOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
 
         T apply(T&& leftValue, T&& rightValue) const override {
-            if (rightValue == ZERO) throw OperationError("Division by zero");
-
-            return leftValue % rightValue;
+            return static_cast<T>(pow(static_cast<double>(leftValue), static_cast<double>(rightValue)));
         }
     };
 
     template<typename T>
     class PrimitiveSqrtOperation final : public UnaryOperation<T> {
-        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value);
-
     public:
         PrimitiveSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
 
-        T apply(T&& value) const override { return sqrt(value); }
-    };
-
-    template<typename T>
-    class ObjectSqrtOperation final : public UnaryOperation<T> {
-        static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value);
-
-    public:
-        ObjectSqrtOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
-
-        T apply(T&& value) const override { return value.sqrt(); }
+        T apply(T&& value) const override { return static_cast<T>(sqrt(static_cast<double>(value))); }
     };
 
     template<typename T>
@@ -119,6 +113,41 @@ namespace calculator {
 
             return sum;
         };
+    };
+
+    /*
+     * Trigonometry TODO more strict
+     */
+    template<typename T>
+    class SinOperation final : public UnaryOperation<T> {
+    public:
+        SinOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const override { return static_cast<T>(sin(static_cast<double>(value))); }
+    };
+
+    template<typename T>
+    class CosOperation final : public UnaryOperation<T> {
+    public:
+        CosOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const override { return static_cast<T>(cos(static_cast<double>(value))); }
+    };
+
+    template<typename T>
+    class TgOperation final : public UnaryOperation<T> {
+    public:
+        TgOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const override { return static_cast<T>(tan(static_cast<double>(value))); }
+    };
+
+    template<typename T>
+    class CtgOperation final : public UnaryOperation<T> {
+    public:
+        CtgOperation(std::shared_ptr<Operation<T>> operand) noexcept : UnaryOperation<T>(operand) {}
+
+        T apply(T&& value) const override { return static_cast<T>(1. / tan(static_cast<double>(value))); }
     };
 } // namespace calculator
 
