@@ -18,11 +18,9 @@ using BigDecimal = boost::multiprecision::cpp_rational;
 
 namespace calculator {
 
-    // based on: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-    namespace algorithm {
-        typedef std::shared_ptr<Operation<BigDecimal>> OperationPointer;
-
-        enum class NodeType { Operator, Operand };
+    template<typename T>
+    class SimpleOperationParser final : public ExpressionParser<T> {
+        typedef std::shared_ptr<Operation<T>> OperationPointer;
 
         enum OperatorType {
             LEFT_BRACE,
@@ -51,19 +49,20 @@ namespace calculator {
             bool leftAssociative;
         };
 
+        // based on: https://en.wikipedia.org/wiki/Shunting-yard_algorithm
         struct Context {
-            typedef std::variant<std::shared_ptr<Operation<BigDecimal>>, OperatorType> OperandOrOperator;
+            typedef std::variant<OperationPointer, OperatorType> OperandOrOperator;
 
             std::queue<OperandOrOperator> output;
             std::stack<Operator> operators;
 
-            void pushValue(std::shared_ptr<Operation<BigDecimal>>&& value) { output.push(std::move(value)); }
+            void pushValue(std::shared_ptr<Operation<T>>&& value) { output.push(std::move(value)); }
 
-            void pushConstant(BigDecimal&& number) {
-                pushValue(std::make_shared<ConstOperation<BigDecimal>>(std::move(number)));
+            void pushConstant(T&& number) {
+                pushValue(std::make_shared<ConstOperation<T>>(std::move(number)));
             }
 
-            void pushVariable(char const name) { pushValue(std::make_shared<VariableOperation<BigDecimal>>(name)); }
+            void pushVariable(char const name) { pushValue(std::make_shared<VariableOperation<T>>(name)); }
 
             void pushFunction(OperatorType type) { operators.push({type, INT_MAX, false}); }
 
@@ -110,13 +109,13 @@ namespace calculator {
                     void push(OperationPointer const& operation) { operands_.push(operation); }
 
                     OperationPointer pop() {
-                        auto popped = operands_.top();
+                        if (operands_.empty()) throw InvalidExpression("Missing operand for expression");
+
+                        auto const popped = operands_.top();
                         operands_.pop();
 
                         return popped;
                     }
-
-                    bool empty() const { return operands_.empty(); }
                 } operands;
 
                 if (output.empty()) throw InvalidExpression("An empty sub-expression");
@@ -124,10 +123,12 @@ namespace calculator {
                 while (!output.empty()) {
                     auto const either = output.front();
                     output.pop();
+                    /*
                     std::cout << '(' << (either.index()) << ')'
-                              << (either.index() == 0 ? std::get<0>(either)->result(Variables<BigDecimal>({}))
+                              << (either.index() == 0 ? std::get<0>(either)->result(Variables<T>({}))
                                                       : std::get<1>(either))
                               << ' ';
+                              */
                     if (either.index() == 0) operands.push(std::get<0>(either)); // operand
                     else {                                                       // operator
                         switch (std::get<1>(either)) {
@@ -135,26 +136,26 @@ namespace calculator {
                             case RIGHT_BRACE: throw std::runtime_error("Parser has produced a right brace token");
                             case PLUS: {
                                 operands.push(
-                                        std::make_shared<PlusOperation<BigDecimal>>(operands.pop(), operands.pop()));
+                                        std::make_shared<PlusOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
                             case MINUS: {
                                 operands.push(
-                                        std::make_shared<MinusOperation<BigDecimal>>(operands.pop(), operands.pop()));
+                                        std::make_shared<MinusOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
                             case MULTIPLY: {
-                                operands.push(std::make_shared<MultiplyOperation<BigDecimal>>(operands.pop(),
-                                                                                              operands.pop()));
+                                operands.push(std::make_shared<MultiplyOperation<T>>(operands.pop(),
+                                                                                     operands.pop()));
                                 break;
                             }
                             case DIVIDE: {
                                 operands.push(
-                                        std::make_shared<DivideOperation<BigDecimal>>(operands.pop(), operands.pop()));
+                                        std::make_shared<DivideOperation<T>>(operands.pop(), operands.pop()));
                                 break;
                             }
                             case MODULO: {
-                                /*operands.push(std::make_shared<ModuloOperation<BigDecimal>>(
+                                /*operands.push(std::make_shared<ModuloOperation<T>>(
                                         operands.pop(), operands.pop()
                                         ));
                                 break;*/
@@ -179,7 +180,7 @@ namespace calculator {
             }
         };
 
-        static OperationPointer parseExpression(std::string_view expression) {
+        static std::shared_ptr<Operation<T>> parseExpression(std::string_view expression) {
             std::cout << "\tHandling single expression: (|" << expression << "|)" << std::endl; // TODO remove
 
             Context context;
@@ -216,7 +217,7 @@ namespace calculator {
                             }
                         }
 
-                        context.pushConstant(BigDecimal(expression.substr(index + 1 - numberLength, numberLength)));
+                        context.pushConstant(T(expression.substr(index + 1 - numberLength, numberLength)));
 
                         break;
                     }
@@ -236,7 +237,7 @@ namespace calculator {
                         if (numberLength == 1) // no digits
                             throw InvalidExpression("Meaningless dot at index " + std::to_string(index));
 
-                        context.pushConstant(BigDecimal(expression.substr(index + 1 - numberLength, numberLength)));
+                        context.pushConstant(T(expression.substr(index + 1 - numberLength, numberLength)));
 
                         break;
                     }
@@ -259,7 +260,7 @@ namespace calculator {
                             }
                         }
                         // this is an e constant
-                        context.pushValue(std::make_shared<ConstEOperation<BigDecimal>>());
+                        context.pushValue(std::make_shared<ConstEOperation<T>>());
                         break;
                     }
                     case 'P':
@@ -268,7 +269,7 @@ namespace calculator {
                             auto const char1 = expression[character + 1];
                             if (char1 == 'I' || char1 == 'i') {
                                 // this is a PI const
-                                context.pushValue(std::make_shared<ConstPiOperation<BigDecimal>>());
+                                context.pushValue(std::make_shared<ConstPiOperation<T>>());
                                 break;
                             }
                         }
@@ -362,6 +363,9 @@ namespace calculator {
                         context.pushRightBracket();
                         break;
                     }
+                    default: {
+                        if (std::isalpha(character)) context.pushVariable(character);
+                    }
                 }
             }
 
@@ -369,11 +373,6 @@ namespace calculator {
 
             return context.createOperation();
         }
-    } // namespace algorithm
-
-    template<typename T>
-    class SimpleOperationParser final : public ExpressionParser<T> {
-        typedef std::shared_ptr<Operation<T>> OperationPointer;
 
         struct Term {
             std::string_view const expression;
@@ -453,7 +452,7 @@ namespace calculator {
 
         // parses an expression with no possible reordering
         static OperationPointer parseSingleTermExpression(std::string_view expression) {
-            return algorithm::parseExpression(expression);
+            return parseExpression(expression);
         }
 
         // parses an expression with no possible reordering
