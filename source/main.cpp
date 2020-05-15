@@ -49,6 +49,7 @@ Variables<BigDecimal> readVariables() {
             std::cout << "Enter the name of the variable and its value" << std::endl;
             std::cin >> name >> value;
         } while (variables.contains(name));
+        variables.insert(std::pair<char, BigDecimal>(name, value));
     }
 
     return Variables(variables);

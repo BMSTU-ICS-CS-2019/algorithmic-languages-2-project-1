@@ -16,7 +16,7 @@ public:
     explicit Variables(std::map<K, V>&& values) : values_(values) {}
 
     std::optional<V> get(K const& name) const {
-        auto const values = values_;
+        auto const& values = values_;
         auto const iterator = values.find(name);
 
         return iterator == values.end() ? std::optional<V>() : std::optional<V>(iterator->second);
