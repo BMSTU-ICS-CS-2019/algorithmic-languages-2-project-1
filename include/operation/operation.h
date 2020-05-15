@@ -7,7 +7,7 @@
 
 namespace calculator {
 
-    class OperationError final : std::invalid_argument {
+    class OperationError final : public std::invalid_argument {
     public:
         OperationError(const std::string& arg) : invalid_argument(arg) {}
 

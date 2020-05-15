@@ -8,7 +8,7 @@
 
 namespace calculator {
 
-    class InvalidExpression : std::invalid_argument {
+    class InvalidExpression : public std::invalid_argument {
     public:
         InvalidExpression(const std::string& arg) : invalid_argument(arg) {}
 
