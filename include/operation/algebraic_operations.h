@@ -19,7 +19,7 @@ namespace calculator {
         T result(Variables<T> const& variables) const final override {
             auto const variable = variables.get(name_);
             if (variable) return variable.value();
-            throw new OperationError("Unknown variable: " + std::to_string(variable));
+            throw new OperationError("Unknown variable: " + std::to_string(name_));
         };
     };
 
