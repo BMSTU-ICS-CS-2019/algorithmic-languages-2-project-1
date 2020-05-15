@@ -7,9 +7,14 @@ template<typename V>
 class Variables final {
     typedef char K;
 
-    std::map<K, V> values_;
+    std::map<K, V> const values_;
 
 public:
+
+    explicit Variables(std::map<K, V> const& values) : values_(values) {}
+
+    explicit Variables(std::map<K, V>&& values) : values_(values) {}
+
     std::optional<V> get(K const& name) {
         auto const values = values_;
         auto const iterator = values.find(name);

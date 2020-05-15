@@ -1,6 +1,7 @@
 #ifndef INCLUDE_OPERATION_H_
 #define INCLUDE_OPERATION_H_
 
+#include <operation/variables.h>
 #include <stdexcept>
 #include <system_error>
 
@@ -32,7 +33,7 @@ namespace calculator {
          *
          * @return result of this operation
          */
-        virtual T result() const = 0;
+        virtual T result(Variables<T> const& variables) const = 0;
     };
 
     template<typename T>
@@ -42,7 +43,7 @@ namespace calculator {
     public:
         UnaryOperation(std::shared_ptr<Operation<T>> const operand) noexcept : operand_(operand) {}
 
-        T result() const final override { return apply(operand_->result()); };
+        T result(Variables<T> const& variables) const final override { return apply(operand_->result(variables)); };
 
     protected:
         virtual T apply(T&& value) const = 0;
@@ -57,7 +58,9 @@ namespace calculator {
                         std::shared_ptr<Operation<T>> const rightOperand) noexcept
             : leftOperand_(leftOperand), rightOperand_(rightOperand) {}
 
-        T result() const final override { return apply(leftOperand_->result(), rightOperand_->result()); };
+        T result(Variables<T> const& variables) const final override {
+            return apply(leftOperand_->result(variables), rightOperand_->result(variables));
+        };
 
     protected:
         virtual T apply(T&& leftValue, T&& rightValue) const = 0;
