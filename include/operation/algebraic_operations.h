@@ -10,7 +10,7 @@
 namespace calculator {
 
     template<typename T>
-    class VariableOperation : public Operation<T> {
+    class VariableOperation final : public Operation<T> {
         char name_;
 
     public:
@@ -21,9 +21,6 @@ namespace calculator {
             if (variable) return variable.value();
             throw new OperationError("Unknown variable: " + std::to_string(variable));
         };
-
-    protected:
-        virtual T apply(T&& value) const = 0;
     };
 
     template<typename T>
