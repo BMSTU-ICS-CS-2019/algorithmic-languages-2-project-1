@@ -58,8 +58,9 @@ namespace calculator {
         T apply(T&& leftValue, T&& rightValue) const override { return leftValue * rightValue; }
     };
 
-    template<typename T, T ZERO>
+    template<typename T>
     class DivideOperation final : public BinaryOperation<T> {
+        T const ZERO {};
     public:
         DivideOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}
@@ -71,8 +72,9 @@ namespace calculator {
         }
     };
 
-    template<typename T, T ZERO>
+    template<typename T>
     class ModuloOperation final : public BinaryOperation<T> {
+        T const ZERO {};
     public:
         ModuloOperation(std::shared_ptr<Operation<T>> left, std::shared_ptr<Operation<T>> right) noexcept
             : BinaryOperation<T>(left, right) {}

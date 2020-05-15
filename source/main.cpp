@@ -11,8 +11,8 @@ using BigDecimal = boost::multiprecision::cpp_rational;
 
 int main() {
     calculator::PrimitiveSqrtOperation<int> expr(std::make_shared<calculator::PlusOperation<int>>(
-            std::make_shared<calculator::DivideOperation<int, 0>>(std::make_shared<calculator::ConstOperation<int>>(4),
-                                                                  std::make_shared<calculator::ConstOperation<int>>(2)),
+            std::make_shared<calculator::DivideOperation<int>>(std::make_shared<calculator::ConstOperation<int>>(4),
+                                                               std::make_shared<calculator::ConstOperation<int>>(2)),
             std::make_shared<calculator::ConstOperation<int>>(7)));
 
     Variables<int> variables(std::map<char, int>({{'x', 12}}));
@@ -23,7 +23,8 @@ int main() {
     auto in = std::stringstream("1+2+3434+34*4*22-32434-(12*3+4-5)-2*3+4");
     //std::string expression;
     //getline(std::cin, expression);
-    parser.parse(in);
+    Variables<BigDecimal> variablesBD(std::map<char, BigDecimal>({{'x', 12}}));
+    std::cout << parser.parse(in)->result(variablesBD) << std::endl;
 
     std::cout << "Hello, World!" << std::endl;
     return 0;
