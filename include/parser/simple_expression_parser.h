@@ -218,7 +218,6 @@ namespace calculator {
                         }
                     }
                 }
-                std::cout << std::endl;
 
                 return operands.pop();
             }
@@ -251,8 +250,6 @@ namespace calculator {
         };
 
         static std::shared_ptr<Operation<T>> parseExpression(std::string_view expression) {
-            std::cout << "\tHandling single expression: (|" << expression << "|)" << std::endl; // TODO remove
-
             Context context;
             Permissions permissions;
             permissions.permit(PermittedToken::OPERAND);
