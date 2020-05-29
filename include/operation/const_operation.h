@@ -16,7 +16,7 @@ namespace calculator {
 
         explicit ConstOperation(T&& result) noexcept : result_(std::move(result)) {}
 
-        T result(Variables<T> const& variables)const override { return result_; }
+        T result(Variables<T> const& variables) const override { return result_; }
     };
 
     template<typename T>
