@@ -351,9 +351,10 @@ namespace calculator {
                     case 'p': {
                         permissions.require(PermittedToken::OPERAND);
                         if (index < maxIndex) {
-                            auto const char1 = expression[character + 1];
+                            auto const char1 = expression[index + 1];
                             if (char1 == 'I' || char1 == 'i') {
                                 // this is a PI const
+                                ++index;
                                 context.pushValue(std::make_shared<ConstPiOperation<T>>());
                                 break;
                             }
